@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <gtk/gtk.h>
 #include "SDL2/SDL.h"
 #include "xemu_plugingui.h"
@@ -39,6 +41,15 @@ static struct {
 #ifndef GUI_HAS_POPUP
 #define GUI_HAS_POPUP
 #endif
+
+
+static int is_xemugui_ok = 1;	// TODO
+
+static void xemu_drop_events ( void )
+{
+	DEBUGPRINT("PLUGIN: %s is TODO!" NL, __func__);
+}
+
 
 int XemuPluginGuiAPI_iteration ( void )
 {
@@ -62,8 +73,8 @@ int XemuPluginGuiAPI_iteration ( void )
 
 int XemuPluginGuiAPI_init ( const int flags )
 {
-#ifdef XEMU_ARCH_UNIX
-	if (sdl_on_x11) {
+#ifndef IS_WINDOWS
+	if ((flags & PLUGINGUI_INITFLAG_X11)) {
 		// Workaround: on Wayland, it's possible that SDL uses x11, but the GUI (with GTK) would use Wayland, mixing x11 and wayland within the same app, isn't a good idea
 		// thus we try to force x11 for GTK (better say GDK as its backend) via an environment variable set here, if we detect SDL uses x11
 		static const char gdk_backend_var_name[]  = "GDK_BACKEND";
@@ -77,7 +88,6 @@ int XemuPluginGuiAPI_init ( const int flags )
 	gtkgui_active = 0;
 	if (!gtk_init_check(NULL, NULL)) {
 		DEBUGGUI("GUI: GTK3 cannot be initialized, no GUI is available ..." NL);
-		ERROR_WINDOW("Cannot initialize GTK");
 		return 1;
 	}
 	is_xemugui_ok = 1;
@@ -165,7 +175,8 @@ int XemuPluginGuiAPI_file_selector ( int dialog_mode, const char *dialog_title, 
 			button_text = "_Save";
 			break;
 		default:
-			FATAL("Invalid mode for UI selector: %d", dialog_mode & 3);
+			DEBUGPRINT("GTK: Invalid mode for UI selector: %d" NL, dialog_mode & 3);
+			return 0;
 	}
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(
 		dialog_title,
@@ -345,7 +356,7 @@ static GdkWindow *super_ugly_gtk_hack ( void )
 	SDL_VERSION(&info.version);
 	SDL_GetWindowWMInfo(sdl_win, &info);
 	if (info.subsystem != SDL_SYSWM_X11)
-		ERROR_WINDOW("Sorry, it won't work, GTK GUI is supported only on top of X11, because of GTK3 makes it no possible to get uniform window-ID from non-GTK window.");
+		DEBUGPRINT("Sorry, it won't work, GTK GUI is supported only on top of X11, because of GTK3 makes it no possible to get uniform window-ID from non-GTK window." NL);
 	//return gdk_x11_window_lookup_for_display(info.info.x11.display, info.info.x11.window);
 	//GdkWindow *gwin = gdk_x11_window_lookup_for_display(gdk_display_get_default(), info.info.x11.window);
 	GdkDisplay *gdisp = gdk_x11_lookup_xdisplay(info.info.x11.display);
@@ -380,7 +391,7 @@ int XemuPluginGuiAPI_popup ( const struct menu_st desc[] )
 	GtkWidget *menu = _gtkgui_create_menu(desc);
 	if (!menu) {
 		gtkgui_active = 0;
-		ERROR_WINDOW("Could not build GTK pop-up menu :(");
+		DEBUGPRINT("Could not build GTK pop-up menu :(" NL);
 		return 1;
 	}
 	// this signal will be fired, to request iterator there, since the menu should be run "in the background" unlike the file selector window ...
@@ -470,7 +481,7 @@ static int xemugtkgui_info ( int sdl_class, const char *msg )
 }
 
 
-int XemuPluginGuiAPI_ShowSimpleMessageBox ( Uint32 flags, const char *title, const char *message, SDL_Window *window )
+int XemuPluginGuiAPI_SDL_ShowSimpleMessageBox ( Uint32 flags, const char *title, const char *message, SDL_Window *window )
 {
 	if (is_xemugui_ok) {
 		if (!xemugtkgui_info(flags, message))
@@ -486,14 +497,16 @@ int XemuPluginGuiAPI_ShowSimpleMessageBox ( Uint32 flags, const char *title, con
 }
 
 
-int XemuPluginGuiAPI_ShowMessageBox ( const SDL_MessageBoxData *box, int *buttonid )
+int XemuPluginGuiAPI_SDL_ShowMessageBox ( const SDL_MessageBoxData *box, int *buttonid )
 {
 	if (!is_xemugui_ok) {
 		DEBUGPRINT("GUI: not initialized yet, SDL_ShowMessageBox_xemuguigtk() reverts to SDL_ShowMessageBox()" NL);
 		goto sdl;
 	}
-	if (box->numbuttons < 1)
-		FATAL("Less than one button for %s?!", __func__);
+	if (box->numbuttons < 1) {
+		DEBUGPRINT("GTK: Less than one button for %s?!" NL, __func__);
+		return -1;
+	}
 	GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "%s", "Xemu question");
 	gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", box->message);
 	gtk_window_set_focus(GTK_WINDOW(dialog), NULL);

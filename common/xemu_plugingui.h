@@ -80,12 +80,35 @@ struct menu_st {
 extern const int XemuPluginGuiAPI_compatibility_const;
 int XemuPluginGuiAPI_init ( const int flags );
 void XemuPluginGuiAPI_shutdown ( void );
-int  XemuPluginGuiAPI_ShowSimpleMessageBox(Uint32 flags, const char *title, const char *message, SDL_Window *window);
-int  XemuPluginGuiAPI_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid);
+int  XemuPluginGuiAPI_SDL_ShowSimpleMessageBox(Uint32 flags, const char *title, const char *message, SDL_Window *window);
+int  XemuPluginGuiAPI_SDL_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid);
 int  XemuPluginGuiAPI_iteration ( void );
 int  XemuPluginGuiAPI_file_selector ( int dialog_mode, const char *dialog_title, char *default_dir, char *selected, int path_max_size );
 int  XemuPluginGuiAPI_popup ( const struct menu_st desc[] );
 
-extern int  is_xemugui_ok;
+
+#if defined(_WIN32) || defined(_WIN64)
+#	define	IS_WINDOWS
+#	define	DIRSEP_CHR	'\\'
+#else
+#	define	DIRSEP_CHR	'/'
+#endif
+
+
+static inline void store_dir_from_file_selection ( char *store_dir, const char *filename, int dialog_mode )
+{
+	if (store_dir && (dialog_mode & XEMUGUI_FSEL_FLAG_STORE_DIR)) {
+		if ((dialog_mode & 0xFF) == XEMUGUI_FSEL_DIRECTORY)
+			strcpy(store_dir, filename);
+		else {
+			char *p = strrchr(filename, DIRSEP_CHR);
+			if (p) {
+				memcpy(store_dir, filename, p - filename + 1);
+				store_dir[p - filename + 1] = '\0';
+			}
+		}
+	}
+}
+
 
 #endif
