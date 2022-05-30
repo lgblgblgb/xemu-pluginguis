@@ -1,6 +1,10 @@
 *.c linguist-language=C
 *.h linguist-language=C
+*.H linguist-language=C++
 *.cpp linguist-language=C++
+*.hpp linguist-language=C++
+*.cxx linguist-language=C++
+*.hxx linguist-language=C++
 *.cdata linguist-language=C
 *.asm linguist-language=Assembly
 *.s linguist-language=Assembly

@@ -15,10 +15,17 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#ifndef XEMU_COMMON_EMUTOOLS_GUI_H_INCLUDED
-#define XEMU_COMMON_EMUTOOLS_GUI_H_INCLUDED
+#ifndef XEMU_PLUGINGUI_H_INCLUDED
+#define XEMU_PLUGINGUI_H_INCLUDED
 
-#define NL "\n"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <SDL.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #define	DEBUGPRINT	printf
@@ -78,7 +85,7 @@ struct menu_st {
 #define	PLUGINGUI_INITFLAG_WAYLAND	2
 
 extern const int XemuPluginGuiAPI_compatibility_const;
-int XemuPluginGuiAPI_init ( const int flags );
+int  XemuPluginGuiAPI_init ( const int flags );
 void XemuPluginGuiAPI_shutdown ( void );
 int  XemuPluginGuiAPI_SDL_ShowSimpleMessageBox(Uint32 flags, const char *title, const char *message, SDL_Window *window);
 int  XemuPluginGuiAPI_SDL_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid);
@@ -88,10 +95,14 @@ int  XemuPluginGuiAPI_popup ( const struct menu_st desc[] );
 
 
 #if defined(_WIN32) || defined(_WIN64)
+#	define	NL		"\r\n"
 #	define	IS_WINDOWS
 #	define	DIRSEP_CHR	'\\'
+#	define	DIRSEP_STR	"\\"
 #else
+#	define	NL		"\n"
 #	define	DIRSEP_CHR	'/'
+#	define	DIRSEP_STR	"/"
 #endif
 
 
@@ -101,7 +112,7 @@ static inline void store_dir_from_file_selection ( char *store_dir, const char *
 		if ((dialog_mode & 0xFF) == XEMUGUI_FSEL_DIRECTORY)
 			strcpy(store_dir, filename);
 		else {
-			char *p = strrchr(filename, DIRSEP_CHR);
+			char *p = (char*)strrchr(filename, DIRSEP_CHR);
 			if (p) {
 				memcpy(store_dir, filename, p - filename + 1);
 				store_dir[p - filename + 1] = '\0';
@@ -111,4 +122,7 @@ static inline void store_dir_from_file_selection ( char *store_dir, const char *
 }
 
 
+#ifdef __cplusplus
+}
+#endif
 #endif

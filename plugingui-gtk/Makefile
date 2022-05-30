@@ -10,10 +10,11 @@ GTK_CFLAGS	= $(shell pkg-config gtk+-3.0 --cflags-only-I)
 GTK_LIBS	= $(shell pkg-config gtk+-3.0 --libs)
 LDFLAGS		= -shared
 OBJ		= $(SRC:.c=.o)
+DEPENDON	= Makefile ../common/*.h
 
 all:	$(SO)
 
-$(OBJ):	$(SRC)
+$(OBJ):	$(SRC) $(DEPENDON)
 	$(CC) $(PLUGIN_CFLAGS) $(SDL2_CFLAGS) $(GTK_CFLAGS) -o $@ -c $<
 
 $(SO):	$(OBJ)
