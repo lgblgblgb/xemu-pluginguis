@@ -29,7 +29,7 @@ install: $(SO)
 
 test:	$(SO)
 	cp $(SO) $(TEST_PATH)
-	$(XEMU_BIN) -gui plugin | fgrep -i plugin
+	$(XEMU_BIN) -gui plugin | egrep -i 'plugin|gui'
 
 clean:
 	rm -f $(SO) $(OBJ)

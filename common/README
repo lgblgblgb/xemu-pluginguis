@@ -1,0 +1,7 @@
+You need to include the file xemu_plugingui.h
+Other files here shouldn't be included by a plugin, or edited by hand, those files are extracted
+from Xemu and may be overwritten!
+
+Do not use the Makefile here, it's meant only
+for importing changes from Xemu at the developer's
+system.

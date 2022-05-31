@@ -27,13 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 extern "C" {
 #endif
 
-
-#define	DEBUGPRINT	printf
-
-//#define DEBUGGUI	DEBUGPRINT
-#define DEBUGGUI	printf
-//#define DEBUGGUI(...)
-
 #define XEMUGUI_FSEL_DIRECTORY		0
 #define XEMUGUI_FSEL_OPEN		1
 #define XEMUGUI_FSEL_SAVE		2
@@ -81,11 +74,10 @@ struct menu_st {
 	const void *user_data;
 };
 
-#define	PLUGINGUI_INITFLAG_X11		1
-#define	PLUGINGUI_INITFLAG_WAYLAND	2
+#include "info_struct_definition.h"
 
 extern const int XemuPluginGuiAPI_compatibility_const;
-int  XemuPluginGuiAPI_init ( const int flags );
+int  XemuPluginGuiAPI_init ( struct xemuplugingui_info_st *info_struct );
 void XemuPluginGuiAPI_shutdown ( void );
 int  XemuPluginGuiAPI_SDL_ShowSimpleMessageBox(Uint32 flags, const char *title, const char *message, SDL_Window *window);
 int  XemuPluginGuiAPI_SDL_ShowMessageBox(const SDL_MessageBoxData *messageboxdata, int *buttonid);
@@ -121,6 +113,34 @@ static inline void store_dir_from_file_selection ( char *store_dir, const char *
 	}
 }
 
+// For these to work, you need to do the following in your plugin code:
+// Use the following in your "init" function _before_ any debug msg sent:
+//	debug_fp = info->debug_fp;
+
+#define DEBUG(...) do { \
+	if (debug_fp) { \
+		fprintf(debug_fp, "%s", DEBUG_MSG_HEADER); \
+		fprintf(debug_fp, __VA_ARGS__); \
+		fprintf(debug_fp, NL); \
+	} \
+} while (0)
+
+#define DEBUGPRINT(...) do { \
+	printf("%s", DEBUG_MSG_HEADER); \
+	printf(__VA_ARGS__); \
+	printf("\n"); \
+	DEBUG(__VA_ARGS__); \
+} while (0)
+
+#if	defined(DEBUGGUI)
+#	undef	DEBUGGUI
+#	define	DEBUGGUI(...)	DEBUGPRINT(__VA_ARGS__)
+#else
+#	define	DEBUGGUI(...)	DEBUG(__VA_ARGS__)
+#endif
+
+static const char DEBUG_MSG_HEADER[] = "GUI: PLUGIN[" PLUGIN_NAME "]: ";
+static FILE *debug_fp = NULL;
 
 #ifdef __cplusplus
 }

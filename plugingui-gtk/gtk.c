@@ -1,5 +1,7 @@
 /* Part of the Xemu project, please visit: https://github.com/lgblgblgb/xemu
-   ~/xemu/gui/gui_gtk.c: UI implementation for GTK+3 of Xemu's UI abstraction layer
+   **DO NOT USE THIS** Xemu has a built-in GTK3 GUI plugin!
+   This is only used to test already-sort-of-working internal code of Xemu as the form of a plugin.
+   Beware, ugly code ahead ...
    Copyright (C)2016-2022 LGB (Gábor Lénárt) <lgblgblgb@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
@@ -17,9 +19,21 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 
+// Things must be done _BEFORE_ including xemu_plugingui.h!
+// Note: xemu_plugingui.h itself includes stdio.h and some other headers as well, including SDL.h
+
+// Give a _short_ name for the plugin
+#define	PLUGIN_NAME "GTK3"
+// Define this (optionally) to have DEBUGGUI(...) then (redefined in xemu_plugingui.h) to have in-development DEBUG messages
+// If you don't need this (production), simple do not define this at all
+#define DEBUGGUI
+
+// At this point, first, we want to include this:
 #include "xemu_plugingui.h"
+// Then your own stuff needed for the plugin, here GTK headers, since it's a GTK based GUI:
 #include <gtk/gtk.h>
 
+// Needed by Xemu. If the value is not the same as Xemu thinks, Xemu will refuse to use your plugin.
 const int XemuPluginGuiAPI_compatibility_const = 1;
 
 #define USE_OLD_GTK_POPUP
@@ -43,7 +57,7 @@ static int is_xemugui_ok = 1;	// TODO
 
 static void xemu_drop_events ( void )
 {
-	DEBUGPRINT("PLUGIN: %s is TODO!" NL, __func__);
+	DEBUGPRINT("%s is TODO!", __func__);
 }
 
 
@@ -56,10 +70,10 @@ int XemuPluginGuiAPI_iteration ( void )
 			n++;
 		}
 		if (n > 0)
-			DEBUGGUI("GUI: GTK used %d iterations." NL, n);
+			DEBUGGUI("GTK used %d iterations.", n);
 		if (n == 0 && gtkgui_active == 2) {
 			gtkgui_active = 0;
-			DEBUGGUI("GUI: stopping GTK3 iterator" NL);
+			DEBUGGUI("stopping GTK3 iterator");
 		}
 		return n;
 	} else
@@ -67,15 +81,18 @@ int XemuPluginGuiAPI_iteration ( void )
 }
 
 
-int XemuPluginGuiAPI_init ( const int flags )
+int XemuPluginGuiAPI_init ( struct xemuplugingui_info_st *info )
 {
+	debug_fp = info->debug_fp;	// We need this to use DEBUG(...) and similar stuff!
+	if (info->length != sizeof(struct xemuplugingui_info_st))
+		DEBUGPRINT("UH-OH info struct size mismatch!");
 #ifndef IS_WINDOWS
-	if ((flags & PLUGINGUI_INITFLAG_X11)) {
+	if ((info->flags & PLUGINGUI_INFOFLAG_X11)) {
 		// Workaround: on Wayland, it's possible that SDL uses x11, but the GUI (with GTK) would use Wayland, mixing x11 and wayland within the same app, isn't a good idea
 		// thus we try to force x11 for GTK (better say GDK as its backend) via an environment variable set here, if we detect SDL uses x11
 		static const char gdk_backend_var_name[]  = "GDK_BACKEND";
 		static const char gdk_backend_var_value[] = "x11";
-		DEBUGPRINT("GTK: setting environment variable %s=%s to avoid possible GTK backend mismatch with SDL" NL, gdk_backend_var_name, gdk_backend_var_value);
+		DEBUGPRINT("setting environment variable %s=%s to avoid possible GTK backend mismatch with SDL", gdk_backend_var_name, gdk_backend_var_value);
 		setenv(gdk_backend_var_name, gdk_backend_var_value, 1);
 	}
 #endif
@@ -83,14 +100,14 @@ int XemuPluginGuiAPI_init ( const int flags )
 	gtkgui_popup_is_open = 0;
 	gtkgui_active = 0;
 	if (!gtk_init_check(NULL, NULL)) {
-		DEBUGGUI("GUI: GTK3 cannot be initialized, no GUI is available ..." NL);
+		DEBUGGUI("GTK3 cannot be initialized, no GUI is available ...");
 		return 1;
 	}
 	is_xemugui_ok = 1;
 	xemugtkmenu.num_of_menus = 0;
 	gtkgui_active = 2;
 	int n = XemuPluginGuiAPI_iteration();
-	DEBUGPRINT("GUI: GTK3 initialized, %d iterations." NL, n);	// consume possible pending (if any?) GTK stuffs after initialization - maybe not needed at all?
+	DEBUGPRINT("GTK3 initialized, %d iterations.", n);	// consume possible pending (if any?) GTK stuffs after initialization - maybe not needed at all?
 	return 0;
 }
 
@@ -102,7 +119,7 @@ void XemuPluginGuiAPI_shutdown ( void )
 	XemuPluginGuiAPI_iteration();
 	// gtk_main_quit();
 	is_xemugui_ok = 0;
-	DEBUGGUI("GUI: GTK3 end" NL);
+	DEBUGGUI("GTK3 end");
 }
 
 
@@ -119,11 +136,11 @@ static int _gtkgui_bgtask_callback ( void *unused ) {
 		;
 	if (_gtkgui_bgtask_running_want) {
 		_gtkgui_bgtask_running_status = 1;
-		DEBUGGUI("GUI: bgtask is active" NL);
+		DEBUGGUI("bgtask is active");
 		return TRUE;
 	} else {
 		_gtkgui_bgtask_running_status = 0;
-		DEBUGGUI("GUI: bgtask is inactive" NL);
+		DEBUGGUI("bgtask is inactive");
 		return FALSE;	// returning FALSE will cause GTK/GLIB to remove the callback of g_timeout_add()
 	}
 }
@@ -171,7 +188,7 @@ int XemuPluginGuiAPI_file_selector ( int dialog_mode, const char *dialog_title, 
 			button_text = "_Save";
 			break;
 		default:
-			DEBUGPRINT("GTK: Invalid mode for UI selector: %d" NL, dialog_mode & 3);
+			DEBUGPRINT("Invalid mode for UI selector: %d", dialog_mode & 3);
 			return 0;
 	}
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(
@@ -221,7 +238,7 @@ static void _gtkgui_destroy_menu ( void )
 	// If this is not needed, in fact, the whole xemugtkmenu is unneeded, and all operations on it throughout this file!!
 	while (xemugtkmenu.num_of_menus > 0) {
 		gtk_widget_destroy(xemugtkmenu.menus[--xemugtkmenu.num_of_menus]);
-		DEBUGGUI("GUI: destroyed menu #%d at %p" NL, xemugtkmenu.num_of_menus, xemugtkmenu.menus[xemugtkmenu.num_of_menus]);
+		DEBUGGUI("destroyed menu #%d at %p", xemugtkmenu.num_of_menus, xemugtkmenu.menus[xemugtkmenu.num_of_menus]);
 	}
 	xemugtkmenu.num_of_menus = 0;
 }
@@ -233,7 +250,7 @@ static void _gtkgui_callback ( const struct menu_st *item )
 	_gtkgui_destroy_menu();
 	//gtk_widget_destroy(_gtkgui_popup);
 	//_gtkgui_popup = NULL;
-	DEBUGGUI("GUI: menu point \"%s\" has been activated." NL, item->name);
+	DEBUGGUI("menu point \"%s\" has been activated.", item->name);
 	((xemugui_callback_t)(item->handler))(item, NULL);
 }
 
@@ -241,7 +258,7 @@ static void _gtkgui_callback ( const struct menu_st *item )
 static GtkWidget *_gtkgui_recursive_menu_builder ( const struct menu_st desc[], const char *parent_name)
 {
 	if (xemugtkmenu.num_of_menus >= XEMUGUI_MAX_SUBMENUS) {
-		DEBUGPRINT("GUI: Too many submenus (max=%d)" NL, XEMUGUI_MAX_SUBMENUS);
+		DEBUGPRINT("Too many submenus (max=%d)", XEMUGUI_MAX_SUBMENUS);
 		goto PROBLEM;
 	}
 	GtkWidget *menu = gtk_menu_new();
@@ -254,7 +271,7 @@ static GtkWidget *_gtkgui_recursive_menu_builder ( const struct menu_st desc[], 
 			((type & 0xFF) == XEMUGUI_MENUID_SUBMENU && (desc[a].handler  || !desc[a].user_data)) ||
 			!desc[a].name
 		) {
-			DEBUGPRINT("GUI: invalid menu entry found, skipping it (item #%d of menu \"%s\")" NL, a, parent_name);
+			DEBUGPRINT("invalid menu entry found, skipping it (item #%d of menu \"%s\")", a, parent_name);
 			continue;
 		}
 		GtkWidget *item = NULL;
@@ -272,7 +289,7 @@ static GtkWidget *_gtkgui_recursive_menu_builder ( const struct menu_st desc[], 
 				break;
 			case XEMUGUI_MENUID_CALLABLE:
 				if ((type & XEMUGUI_MENUFLAG_QUERYBACK)) {
-					DEBUGGUI("GUI: query-back for \"%s\"" NL, desc[a].name);
+					DEBUGGUI("query-back for \"%s\"", desc[a].name);
 					((xemugui_callback_t)(desc[a].handler))(&desc[a], &type);
 				}
 				if ((type & XEMUGUI_MENUFLAG_HIDDEN))
@@ -293,7 +310,7 @@ static GtkWidget *_gtkgui_recursive_menu_builder ( const struct menu_st desc[], 
 				);
 				break;
 			default:
-				DEBUGPRINT("GUI: invalid menu item type: %d" NL, type & 0xFF);
+				DEBUGPRINT("invalid menu item type: %d", type & 0xFF);
 				break;
 		}
 		if (item) {
@@ -334,7 +351,7 @@ static void _gtkgui_disappear ( const char *signal_name )
 	// Basically we don't want to waste CPU time in GTK for the iterator (ie event loop) if you
 	// don't need it. So when pop-up menu deactivated, this callback is called, which sets gtkgui_active to 2.
 	// this is a signal for the iterator to stop itself if there was no events processed once at its run
-	DEBUGGUI("GUI: requesting iterator stop on g-signal \"%s\"" NL, signal_name);
+	DEBUGGUI("requesting iterator stop on g-signal \"%s\"", signal_name);
 	// Unfortunately, we can't destroy widget here, since it makes callback never executed :( Oh main, GTK is hard :-O
 	gtkgui_active = 2;
 	gtkgui_popup_is_open = 0;
@@ -352,12 +369,12 @@ static GdkWindow *super_ugly_gtk_hack ( void )
 	SDL_VERSION(&info.version);
 	SDL_GetWindowWMInfo(sdl_win, &info);
 	if (info.subsystem != SDL_SYSWM_X11)
-		DEBUGPRINT("Sorry, it won't work, GTK GUI is supported only on top of X11, because of GTK3 makes it no possible to get uniform window-ID from non-GTK window." NL);
+		DEBUGPRINT("Sorry, it won't work, GTK GUI is supported only on top of X11, because of GTK3 makes it no possible to get uniform window-ID from non-GTK window.");
 	//return gdk_x11_window_lookup_for_display(info.info.x11.display, info.info.x11.window);
 	//GdkWindow *gwin = gdk_x11_window_lookup_for_display(gdk_display_get_default(), info.info.x11.window);
 	GdkDisplay *gdisp = gdk_x11_lookup_xdisplay(info.info.x11.display);
 	if (!gdisp) {
-		DEBUGGUI("GUI: gdk_x11_lookup_xdisplay() failed :( reverting to gdk_display_get_default() ..." NL);
+		DEBUGGUI("gdk_x11_lookup_xdisplay() failed :( reverting to gdk_display_get_default() ...");
 		gdisp = gdk_display_get_default();
 	}
 	GdkWindow *gwin = gdk_x11_window_foreign_new_for_display(
@@ -366,7 +383,7 @@ static GdkWindow *super_ugly_gtk_hack ( void )
 		gdisp,
 		info.info.x11.window
 	);
-	DEBUGPRINT("GUI: gwin = %p" NL, gwin);
+	DEBUGPRINT("gwin = %p", gwin);
 	return gwin;
 }
 #endif
@@ -376,18 +393,18 @@ int XemuPluginGuiAPI_popup ( const struct menu_st desc[] )
 {
 	static const char disappear_signal[] = "deactivate";
 	if (gtkgui_popup_is_open) {
-		DEBUGGUI("GUI: trying to enter popup mode, while we're already there" NL);
+		DEBUGGUI("trying to enter popup mode, while we're already there");
 		return 0;
 	}
 	if (!is_xemugui_ok /*|| gtk_menu_problem*/) {
-		DEBUGGUI("GUI: MENU: GUI was not successfully initialized yet, or GTK menu creation problem occured back to the first attempt" NL);
+		DEBUGGUI("MENU: GUI was not successfully initialized yet, or GTK menu creation problem occured back to the first attempt");
 		return 1;
 	}
 	gtkgui_active = 1;
 	GtkWidget *menu = _gtkgui_create_menu(desc);
 	if (!menu) {
 		gtkgui_active = 0;
-		DEBUGPRINT("Could not build GTK pop-up menu :(" NL);
+		DEBUGPRINT("Could not build GTK pop-up menu :(");
 		return 1;
 	}
 	// this signal will be fired, to request iterator there, since the menu should be run "in the background" unlike the file selector window ...
@@ -483,12 +500,12 @@ int XemuPluginGuiAPI_SDL_ShowSimpleMessageBox ( Uint32 flags, const char *title,
 		if (!xemugtkgui_info(flags, message))
 			return 0;
 		else
-			DEBUGPRINT("GUI: SDL_ShowSimpleMessageBox_xemuguigtk() has problems, reverting to SDL_ShowSimpleMessageBox()" NL);
+			DEBUGPRINT("SDL_ShowSimpleMessageBox_xemuguigtk() has problems, reverting to SDL_ShowSimpleMessageBox()");
 	} else
-		DEBUGPRINT("GUI: not initialized yet, SDL_ShowSimpleMessageBox_xemuguigtk() reverts to SDL_ShowSimpleMessageBox()" NL);
+		DEBUGPRINT("not initialized yet, SDL_ShowSimpleMessageBox_xemuguigtk() reverts to SDL_ShowSimpleMessageBox()");
 	if (!SDL_ShowSimpleMessageBox(flags, title, message, window))
 		return 0;
-	DEBUGPRINT("GUI: SDL_ShowSimpleMessageBox() error: %s" NL, SDL_GetError());
+	DEBUGPRINT("SDL_ShowSimpleMessageBox() error: %s", SDL_GetError());
 	return -1;
 }
 
@@ -496,11 +513,11 @@ int XemuPluginGuiAPI_SDL_ShowSimpleMessageBox ( Uint32 flags, const char *title,
 int XemuPluginGuiAPI_SDL_ShowMessageBox ( const SDL_MessageBoxData *box, int *buttonid )
 {
 	if (!is_xemugui_ok) {
-		DEBUGPRINT("GUI: not initialized yet, SDL_ShowMessageBox_xemuguigtk() reverts to SDL_ShowMessageBox()" NL);
+		DEBUGPRINT("not initialized yet, SDL_ShowMessageBox_xemuguigtk() reverts to SDL_ShowMessageBox()");
 		goto sdl;
 	}
 	if (box->numbuttons < 1) {
-		DEBUGPRINT("GTK: Less than one button for %s?!" NL, __func__);
+		DEBUGPRINT("Less than one button for %s?!", __func__);
 		return -1;
 	}
 	GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION, GTK_BUTTONS_NONE, "%s", "Xemu question");
@@ -528,7 +545,7 @@ int XemuPluginGuiAPI_SDL_ShowMessageBox ( const SDL_MessageBoxData *box, int *bu
 	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
 	_gtkgui_bgtask_clear();
 	gtk_widget_destroy(dialog);
-	//DEBUGPRINT("GUI: GTK RES = %d" NL, res);
+	//DEBUGPRINT("GTK RES = %d", res);
 	if (res < 0) {
 		// FIXME: not all negative error codes mean escape the dialog box, maybe only -4? what about the others??
 		res = escape_default_value;
