@@ -2,6 +2,8 @@
 
 This project tries to document, demonstrate and collect Plugin-GUIs for the Xemu project. The intent here is to write GUIs for Xemu which is not inside the source tree of Xemu, so there is no limitation in used programming languages, more "exotic" systems and so on. Still, the built-in GUIs in Xemu will remain and considered as the "mainstream" ones. The other intent here is to try to rationalite how Xemu's GUI work, since a different approach to use external "plugins" may reveal some problems I can fix then.
 
+Currently, this repository does not contain too much really _useful_ GUI pluigns, hopefully it can change in the future.
+
 **Xemu Plugin-GUI API documentation**: https://github.com/lgblgblgb/xemu-pluginguis/wiki/PluginGuiAPI
 
 **About my Xemu project**: https://github.com/lgblgblgb/xemu
@@ -24,4 +26,4 @@ Though Xemu has a built-in GTK GUI, this is very quick hack to try the GTK GUI a
 
 ### Directory: plugingui-fltk
 
-FLTK based plugin-GUI for Xemu. Work in progress. Written in C++. For compilation you need the development libraries and headers for FLTK (1.3).
+FLTK based plugin-GUI for Xemu. Work in progress. Written in C++. For compilation you need the development libraries and headers for FLTK (1.3). A kind of demonstration plugin only, this is my FIRST time I've ever try to use FLTK also C++. Work in progress, missing menus, file chooser :-/

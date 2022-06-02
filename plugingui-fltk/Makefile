@@ -1,25 +1,25 @@
 SO		= plugingui.so
-CC		= gcc
-LD		= gcc
-SRC		= gtk.c
+CC		= g++
+LD		= g++
+SRC		= fltk.cpp
 TEST_PATH	= /home/$(shell whoami)/.local/share/xemu-lgb/mega65/plugingui.so
 XEMU_BIN	= /home/$(shell whoami)/prog_here/xemu-dev/build/bin/xmega65.native
 PLUGIN_CFLAGS	= -Wall -O2 -I../common/
 COMPILE_CFLAGS	= -fPIC
 SDL2_CFLAGS	= $(shell sdl2-config --cflags)
-GTK_CFLAGS	= $(shell pkg-config gtk+-3.0 --cflags-only-I)
-GTK_LIBS	= $(shell pkg-config gtk+-3.0 --libs)
+FLTK_CFLAGS	= $(shell fltk-config --cflags)
+FLTK_LIBS	= $(shell fltk-config --ldflags)
 LDFLAGS		= -shared
-OBJ		= $(SRC:.c=.o)
+OBJ		= $(SRC:.cpp=.o)
 DEPENDON	= Makefile ../common/*.h
 
 all:	$(SO)
 
 $(OBJ):	$(SRC) $(DEPENDON)
-	$(CC) $(PLUGIN_CFLAGS) $(COMPILE_CFLAGS) $(SDL2_CFLAGS) $(GTK_CFLAGS) -o $@ -c $<
+	$(CC) $(PLUGIN_CFLAGS) $(COMPILE_CFLAGS) $(SDL2_CFLAGS) $(FLTK_CFLAGS) -o $@ -c $<
 
 $(SO):	$(OBJ)
-	$(LD) $(LDFLAGS) -o $(SO) $(OBJ) $(GTK_LIBS)
+	$(LD) $(LDFLAGS) -o $(SO) $(OBJ) $(FLTK_LIBS)
 
 strip:	$(SO)
 	strip $(SO)
