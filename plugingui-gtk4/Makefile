@@ -1,0 +1,38 @@
+SO		= plugingui.so
+CC		= gcc
+LD		= gcc
+SRC		= gtk.c
+TEST_PATH	= /home/$(shell whoami)/.local/share/xemu-lgb/mega65/plugingui.so
+XEMU_BIN	= /home/$(shell whoami)/prog_here/xemu-dev/build/bin/xmega65.native
+PLUGIN_CFLAGS	= -Wall -O2 -I../common/
+COMPILE_CFLAGS	= -fPIC
+SDL2_CFLAGS	= $(shell sdl2-config --cflags)
+GTK_CFLAGS	= $(shell pkg-config gtk4 --cflags-only-I)
+GTK_LIBS	= $(shell pkg-config gtk4 --libs)
+LDFLAGS		= -shared
+OBJ		= $(SRC:.c=.o)
+DEPENDON	= Makefile ../common/*.h
+
+all:	$(SO)
+
+$(OBJ):	$(SRC) $(DEPENDON)
+	$(CC) $(PLUGIN_CFLAGS) $(COMPILE_CFLAGS) $(SDL2_CFLAGS) $(GTK_CFLAGS) -o $@ -c $<
+
+$(SO):	$(OBJ)
+	$(LD) $(LDFLAGS) -o $(SO) $(OBJ) $(GTK_LIBS)
+
+strip:	$(SO)
+	strip $(SO)
+
+install: $(SO)
+	$(MAKE) strip
+	cp $(SO) $(TEST_PATH)
+
+test:	$(SO)
+	cp $(SO) $(TEST_PATH)
+	$(XEMU_BIN) -gui plugin | egrep -i 'plugin|gui'
+
+clean:
+	rm -f $(SO) $(OBJ)
+
+.PHONY:	all strip install test clean

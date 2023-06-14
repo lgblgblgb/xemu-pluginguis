@@ -24,6 +24,14 @@ Find some `plugingui-*` implementation which seems to be similar to your project
 
 Though Xemu has a built-in GTK GUI, this is very quick hack to try the GTK GUI as form of a plugin. The purpose is more to test if this plugin-GUI API works at with some code known to be working built-in already. Please **do not use** this, it's only for testing and really bad idea for every day use! Written in C. For compilation you need the development libraries and headers for GTK+3.
 
+### Directory: plugingui-gtk4
+
+Experimental GTK GUI version using GTK4 instead of GTK3 (which is the built-in one in Xemu, also here as "plugingui-gtk"). I'm planning to integrate this into Xemu at some point, so both of GTK version 3 or 4 can be used. Eventually the world will migrate to GTK3 anyway, so it's better to be ready ...
+
 ### Directory: plugingui-fltk
 
 FLTK based plugin-GUI for Xemu. Work in progress. Written in C++. For compilation you need the development libraries and headers for FLTK (1.3). A kind of demonstration plugin only, this is my FIRST time I've ever try to use FLTK also C++. Work in progress, missing menus, file chooser :-/
+
+### Directory: plugingui-qt
+
+QT5 based plugin-GUI for Xemu. Work in progress. Written in C++.
